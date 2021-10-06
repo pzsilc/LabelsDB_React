@@ -5,7 +5,7 @@ const Header = () => {
         <header>
             <div className="d-flex">
                 <img
-                    src="/logo.png"
+                    src="/labelsdb/logo.png"
                     width="250"
                     className="ml-5 pl-5 mt-3"
                 />

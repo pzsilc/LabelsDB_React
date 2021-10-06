@@ -1,38 +1,58 @@
 import React from 'react';
 import CreateForm from './CreateForm';
 import RequestDetail from './RequestDetail';
+import RequestUpdate from './RequestUpdate';
 import * as api from '../../api';
 import { toast } from 'react-toastify';
 import ReactPaginate from 'react-paginate';
+import PDF from './PDF';
+import DeleteButton from './DeleteButton';
+const PASSWORD = 'silcare2021!!'
 
 
 export default class Home extends React.Component {
 
     state = {
         requests: [],
-        kinds: [],
         reasons: [],
+        kinds: [],
         statuses: [],
         page: 1,
         pagesNum: 0,
+        auth: false,
         filters: {
             status: ""
         },
         data: {
             number: "",
             index_nb: 1,
-            position_nb: 1,
-            quantity: 1,
-            kind: null,
             reason: null,
-            status: null
+            kinds: [],
+            status: null,
+            comment: ""
         }
     }
 
     componentDidMount = () => {
-      this.fetchLabelRequests();
+        this.fetchLabelRequests();
         api.getReasons().then(reasons => this.setState({ reasons })).catch(console.log);
-        api.getKinds().then(kinds => this.setState({ kinds })).catch(console.log);
+        api.getKinds()
+        .then(kinds => {
+            this.setState({ kinds });
+            return kinds;
+        })
+        .then(kinds => {
+            this.setState({
+                ...this.state,
+                data: {
+                    ...this.state.data,
+                    kinds: kinds.map(kind => {
+                        kind.quantity = 0;
+                        return kind;
+                    })
+                }
+            })
+        }).catch(console.log);
         api.getStatuses().then(statuses => this.setState({ statuses })).catch(console.log);
     }
 
@@ -64,6 +84,21 @@ export default class Home extends React.Component {
         })
     }
 
+    setKindQuantity = (kindId, quantity) => {
+        this.setState({
+            ...this.state,
+            data: {
+                ...this.state.data,
+                kinds: this.state.data.kinds.map(kind => {
+                    if(kind.id == kindId){
+                        kind.quantity = quantity;
+                    }
+                    return kind;
+                })
+            }
+        })
+    }
+
     setFilters = async(e) => {
         await this.setState({
             ...this.state,
@@ -85,20 +120,25 @@ export default class Home extends React.Component {
         .catch(err => {
             console.log(err);
             toast.error('Coś poszło nie tak');
+            if(err.response){
+                err.response.data.data.forEach(n => toast.error(n))
+            }
         })
+    }
+
+    checkAuth = e => {
+        e.preventDefault();
+        const { value } = e.target.auth;
+        if(value === PASSWORD){
+            this.setState({ auth: true });
+        } else {
+            toast.error('Błędne hasło');
+        }
     }
 
     createRequest = e => {
         e.preventDefault();
-        api.createLabelRequest({
-            number: e.target.number.value,
-            index_nb: parseInt(e.target.index_nb.value),
-            kind: parseInt(e.target.kind.value),
-            reason: parseInt(e.target.reason.value),
-            quantity: parseInt(e.target.quantity.value),
-            position_nb: parseInt(e.target.position_nb.value),
-            status: 1
-        })
+        api.createLabelRequest({ ...this.state.data, status: 1 })
         .then(res => {
             console.log(res);
             toast.success('Dodano zapotrzebowanie');
@@ -112,7 +152,10 @@ export default class Home extends React.Component {
                     position_nb: 1,
                     quantity: 1,
                     kind: null,
-                    reason: null,
+                    reason: this.state.data.reasons.map(reason => {
+                        reason.quantity = 0;
+                        return reason;
+                    }),
                     status: null
                 }
             })
@@ -132,10 +175,11 @@ export default class Home extends React.Component {
                 <div className="d-flex justify-content-between">
                     <CreateForm
                         createRequest={this.createRequest}
-                        kinds={this.state.kinds}
+                        kinds={this.state.data.kinds}
                         reasons={this.state.reasons}
                         data={this.state.data}
                         setField={this.setField}
+                        setKindQuantity={this.setKindQuantity}
                     />
                     <select
                         name="status"
@@ -161,7 +205,9 @@ export default class Home extends React.Component {
                             <th>ID</th>
                             <th>Nr zlecenia</th>
                             <th>Status</th>
+                            <th>Komentarz</th>
                             <th>Więcej informacji</th>
+                            {this.state.auth && <th>Edycja</th>}
                         </tr>
                     </thead>
                     <tbody>
@@ -173,6 +219,7 @@ export default class Home extends React.Component {
                                 <td>{req.id}</td>
                                 <td>{req.number}</td>
                                 <td>{req.status.name}</td>
+                                <td>{req.comment}</td>
                                 <td>
                                     <button
                                         type="button"
@@ -182,10 +229,29 @@ export default class Home extends React.Component {
                                     >
                                     </button>
                                     <RequestDetail
+                                        kinds={this.state.kinds}
                                         labelRequest={req}
                                         updateStatus={this.updateStatus}
+                                        fetchLabelRequests={this.fetchLabelRequests}
                                     />
                                 </td>
+                                {this.state.auth &&
+                                    <td>
+                                        <button
+                                            type="button"
+                                            className="fa fa-edit btn btn primary"
+                                            data-toggle="modal"
+                                            data-target={`#update-modal-${req.id}`}
+                                        >
+                                        </button>
+                                        <RequestUpdate
+                                            labelRequest={req}
+                                            reasons={this.state.reasons}
+                                            kinds={this.state.data.kinds}
+                                            fetchLabelRequests={this.fetchLabelRequests}
+                                        />
+                                    </td>
+                                }
                             </tr>
                         )}
                     </tbody>
@@ -203,6 +269,42 @@ export default class Home extends React.Component {
                         nextLabel=">>"
                         activeClassName="bg-primary border-primary"
                         activeLinkClassName="text-white cursor-pointer"
+                    />
+                </div>
+                <div className="mt-5 pt-5">
+                    {!this.state.auth &&
+                        <div>
+                            <h1 className="my-5">Zaloguj się</h1>
+                            <form onSubmit={this.checkAuth}>
+                                <label>
+                                    Hasło:
+                                    <input
+                                        type="password"
+                                        name="auth"
+                                        className="form-control"
+                                    />
+                                </label>
+                                <br/>
+                                <input
+                                    type="submit"
+                                    className="btn btn-primary"
+                                />
+                            </form>
+                        </div>
+                    }
+                    {this.state.auth &&
+                        <div>
+                            Jesteś zalogowany
+                        </div>
+                    }
+                </div>
+                <div className="m-3">
+                    <PDF
+                        auth={this.state.auth}
+                    />
+                    <DeleteButton
+                        auth={this.state.auth}
+                        fetchLabelRequests={this.fetchLabelRequests}
                     />
                 </div>
             </div>

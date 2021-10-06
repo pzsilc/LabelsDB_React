@@ -1,6 +1,30 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { toast } from 'react-toastify';
+import { editComment } from '../../../api';
 
-const RequestDetail = ({ labelRequest, updateStatus }) => {
+const RequestDetail = ({ kinds, labelRequest, updateStatus, fetchLabelRequests }) => {
+
+    const [editMode, setEditMode] = useState(false);
+    const [comment, setComment] = useState(labelRequest.comment);
+
+    const getKindNameById = id => {
+        let found = kinds.find(k => k.id == id);
+        return found ? found.name : "";
+    }
+
+    const saveComment = () => {
+        editComment(comment, labelRequest.id)
+        .then(res => {
+            console.log(res);
+            toast.success('Zapisano komentarz')
+            fetchLabelRequests();
+        })
+        .catch(err => {
+            toast.error('Coś poszło nie tak')
+            console.log(err)
+        })
+    }
+
     return (
         <div
             className="modal fade text-left"
@@ -63,20 +87,51 @@ const RequestDetail = ({ labelRequest, updateStatus }) => {
                             {labelRequest.reason.name}
                         </div>
                         <div>
-                            <b className="mr-2">Rodzaj etykiety:</b>
-                            {labelRequest.kind.name}
-                        </div>
-                        <div>
-                            <b className="mr-2">Ilość:</b>
-                            {labelRequest.quantity}
-                        </div>
-                        <div>
                             <b className="mr-2">Nr stanowiska:</b>
                             {labelRequest.position_nb}
                         </div>
                         <div>
                             <b className="mr-2">Status:</b>
                             {labelRequest.status.name}
+                        </div>
+                        <div>
+                            <b className="mr-2">Rodzaje</b>
+                            {labelRequest.kinds.map((kind, key) => 
+                                <div key={key}>
+                                    <b>{getKindNameById(kind.kind)}</b>
+                                    : {kind.quantity}
+                                </div>
+                            )}
+                        </div>
+                        <div>
+                            <div className="d-flex justify-content-between">
+                                <b className="mr-2">Komentarz:</b>
+                                <button
+                                    type="button"
+                                    onClick={() => setEditMode(!editMode)}
+                                    className="btn btn-default"
+                                >
+                                    Edit
+                                </button>
+                            </div>
+                            {editMode ? <div>
+                                <textarea
+                                    className="form-control"
+                                    onChange={e => setComment(e.target.value)}
+                                    value={comment}
+                                >
+                                    {labelRequest.comment}
+                                </textarea>
+                                <button
+                                    type="button"
+                                    onClick={saveComment}
+                                    className="btn btn-primary mt-2"
+                                >
+                                    Zapisz
+                                </button>
+                            </div> : <div>
+                                {labelRequest.comment}    
+                            </div>}
                         </div>
                     </div>
                     <div className="modal-footer">

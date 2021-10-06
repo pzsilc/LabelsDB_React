@@ -6,7 +6,7 @@ const Footer = () => {
             backgroundColor: '#eeeeee'
         }}>
             <img
-                src="/logo.png"
+                src="/labelsdb/logo.png"
                 width="100"
                 className="my-3"
             />

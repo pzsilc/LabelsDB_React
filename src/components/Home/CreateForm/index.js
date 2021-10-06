@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 const CreateForm = props => {
     return(
@@ -50,6 +50,7 @@ const CreateForm = props => {
                                     type="text"
                                     className="form-control"
                                     name="number"
+                                    maxLength="16"
                                     value={props.data.number}
                                     onChange={props.setField}
                                     required
@@ -90,36 +91,24 @@ const CreateForm = props => {
                             </label>
                             <br/>
                             <label>
-                                Rodzaj
-                                <select
-                                    name="kind"
-                                    className="form-control"
-                                    required
-                                    onChange={props.setField}
-                                >
-                                    <option value="">...</option>
-                                    {props.kinds.map((k, key) =>
-                                        <option
-                                            value={k.id}
-                                            key={key}
-                                            selected={props.data.reason === k.id}
-                                        >{k.name}</option>
-                                    )}
-                                </select>
-                            </label>
-                            <br/>
-                            <label>
-                                Ilość
-                                <input
-                                    type="number"
-                                    min="1"
-                                    max="10000"
-                                    className="form-control"
-                                    name="quantity"
-                                    value={props.data.quantity}
-                                    onChange={props.setField}
-                                    required
-                                />
+                                Rodzaje:
+                                <br/>
+                                {props.kinds.map((kind, key) => 
+                                    <div 
+                                        key={key}
+                                        className="d-inline-block m-2"
+                                    >
+                                        <b>{kind.name}</b>
+                                        <input
+                                            type="number"
+                                            value={kind.quantity}
+                                            min="0"
+                                            onChange={e => props.setKindQuantity(kind.id, parseInt(e.target.value))}
+                                            max="10000"
+                                            className="form-control"
+                                        />
+                                    </div>
+                                )}
                             </label>
                             <br/>
                             <label>
@@ -134,6 +123,17 @@ const CreateForm = props => {
                                     onChange={props.setField}
                                     required
                                 />
+                            </label>
+                            <br/>
+                            <label>
+                                Komentarz
+                                <textarea
+                                    max="255"
+                                    className="form-control"
+                                    name="comment"
+                                    defaultValue={props.data.comment}
+                                    onChange={props.setField}
+                                ></textarea>
                             </label>
                         </div>
                         <div className="modal-footer">

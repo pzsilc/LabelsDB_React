@@ -7,6 +7,7 @@ const CreateForm = props => {
                 data-toggle="modal"
                 data-target="#create-form"
                 className="btn btn-primary my-5"
+                style={{ height: '50px' }}
             >
                 Dodaj zapotrzebowanie
             </button>

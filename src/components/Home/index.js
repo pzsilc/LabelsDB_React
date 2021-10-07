@@ -5,9 +5,22 @@ import RequestUpdate from './RequestUpdate';
 import * as api from '../../api';
 import { toast } from 'react-toastify';
 import ReactPaginate from 'react-paginate';
-import PDF from './PDF';
+import XLSX from './XLSX';
+import Filters from './Filters';
 import DeleteButton from './DeleteButton';
 const PASSWORD = 'silcare2021!!'
+
+
+const initFilters = { status: null };
+const initSorts = "";
+const initData = {
+    number: "",
+    index_nb: 1,
+    reason: null,
+    kinds: [],
+    status: null,
+    comment: ""
+}
 
 
 export default class Home extends React.Component {
@@ -20,17 +33,9 @@ export default class Home extends React.Component {
         page: 1,
         pagesNum: 0,
         auth: false,
-        filters: {
-            status: ""
-        },
-        data: {
-            number: "",
-            index_nb: 1,
-            reason: null,
-            kinds: [],
-            status: null,
-            comment: ""
-        }
+        filters: initFilters,
+        sorts: initSorts,
+        data: initData
     }
 
     componentDidMount = () => {
@@ -57,7 +62,7 @@ export default class Home extends React.Component {
     }
 
     fetchLabelRequests = () => {
-        api.getLabelRequests(this.state.page, this.state.filters.status).then(data => {
+        api.getLabelRequests(this.state.page, this.state.filters.status, this.state.sorts).then(data => {
             this.setState({
                 requests: data.requests,
                 pagesNum: data.pagesNum
@@ -65,8 +70,8 @@ export default class Home extends React.Component {
         }).catch(console.log);
     }
 
-    setPage = e => {
-        this.setState({
+    setPage = async e => {
+        await this.setState({
             ...this.state,
             page: e.selected + 1
         });
@@ -99,11 +104,30 @@ export default class Home extends React.Component {
         })
     }
 
-    setFilters = async(e) => {
+    setFilters = async e => {
         await this.setState({
             ...this.state,
-            filters: { status: e.target.value }
+            filters: { 
+                status: e.target.value 
+            }
         })
+        this.fetchLabelRequests();
+    }
+
+    setSorts = async e => {
+        await this.setState({
+            ...this.state,
+            sorts: e.target.value
+        });
+        this.fetchLabelRequests();
+    }
+
+    resetFiltersAndSorts = async () => {
+        await this.setState({
+            ...this.state,
+            filters: initFilters,
+            sorts: initSorts
+        });
         this.fetchLabelRequests();
     }
 
@@ -136,6 +160,19 @@ export default class Home extends React.Component {
         }
     }
 
+    deleteLabel = id => {
+        api.destroyLabelRequest(id)
+        .then(res => {
+            console.log(res);
+            toast.success('Usunięto zapotrzebowanie');
+            this.fetchLabelRequests();
+        })
+        .catch(err => {
+            console.log(err);
+            toast.error('Nie udało się usunąć zapotrzebowania');
+        })
+    }
+
     createRequest = e => {
         e.preventDefault();
         api.createLabelRequest({ ...this.state.data, status: 1 })
@@ -146,18 +183,7 @@ export default class Home extends React.Component {
             this.fetchLabelRequests();
             this.setState({
                 ...this.state,
-                data: {
-                    number: "",
-                    index_nb: 1,
-                    position_nb: 1,
-                    quantity: 1,
-                    kind: null,
-                    reason: this.state.data.reasons.map(reason => {
-                        reason.quantity = 0;
-                        return reason;
-                    }),
-                    status: null
-                }
+                data: initData
             })
         })
         .catch(err => {
@@ -181,23 +207,15 @@ export default class Home extends React.Component {
                         setField={this.setField}
                         setKindQuantity={this.setKindQuantity}
                     />
-                    <select
-                        name="status"
-                        className="form-control mt-5"
-                        style={{ width: '200px' }}
-                        onChange={this.setFilters}
-                    >
-                        <option value="" selected={!this.state.filters.status}>Wszystkie</option>
-                        {this.state.statuses.map((status, key) =>
-                            <option
-                                value={status.id}
-                                key={key}
-                                selected={status.id == this.state.filters.status}
-                            >
-                                {status.name}
-                            </option>
-                        )}
-                    </select>
+                    <Filters
+                        filters={this.state.filters}
+                        sorts={this.state.sorts}
+                        setFilters={this.setFilters}
+                        setSorts={this.setSorts}
+                        statuses={this.state.statuses}
+                        reasons={this.state.reasons}
+                        resetFiltersAndSorts={this.resetFiltersAndSorts}
+                    />
                 </div>
                 <table className="table table text-center">
                     <thead>
@@ -208,6 +226,7 @@ export default class Home extends React.Component {
                             <th>Komentarz</th>
                             <th>Więcej informacji</th>
                             {this.state.auth && <th>Edycja</th>}
+                            {this.state.auth && <th>Usuń</th>}
                         </tr>
                     </thead>
                     <tbody>
@@ -236,21 +255,30 @@ export default class Home extends React.Component {
                                     />
                                 </td>
                                 {this.state.auth &&
-                                    <td>
-                                        <button
-                                            type="button"
-                                            className="fa fa-edit btn btn primary"
-                                            data-toggle="modal"
-                                            data-target={`#update-modal-${req.id}`}
-                                        >
-                                        </button>
-                                        <RequestUpdate
-                                            labelRequest={req}
-                                            reasons={this.state.reasons}
-                                            kinds={this.state.data.kinds}
-                                            fetchLabelRequests={this.fetchLabelRequests}
-                                        />
-                                    </td>
+                                    <React.Fragment>
+                                        <td>
+                                            <button
+                                                type="button"
+                                                className="fa fa-edit btn btn primary"
+                                                data-toggle="modal"
+                                                data-target={`#update-modal-${req.id}`}
+                                            >
+                                            </button>
+                                            <RequestUpdate
+                                                labelRequest={req}
+                                                reasons={this.state.reasons}
+                                                kinds={this.state.data.kinds}
+                                                fetchLabelRequests={this.fetchLabelRequests}
+                                            />
+                                        </td>
+                                        <td>
+                                            <button
+                                                className="fa fa-trash btn btn-danger"
+                                                onClick={() => this.deleteLabel(req.id)}
+                                            >    
+                                            </button>
+                                        </td>
+                                    </React.Fragment>
                                 }
                             </tr>
                         )}
@@ -299,7 +327,7 @@ export default class Home extends React.Component {
                     }
                 </div>
                 <div className="m-3">
-                    <PDF
+                    <XLSX
                         auth={this.state.auth}
                     />
                     <DeleteButton

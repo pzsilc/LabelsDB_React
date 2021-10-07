@@ -2,8 +2,9 @@ import axios from 'axios';
 import FormData from 'form-data';
 const BACKEND_URL = 'http://192.168.0.234/labelsdb/backend/api';
 
-const getLabelRequests = (page, status) => new Promise((resolve, reject) => {
-    axios.get(BACKEND_URL + '/label-requests?page=' + page + '&status=' + status).then(res => resolve(res.data)).catch(err => reject(err))
+const getLabelRequests = (page, status, sorts) => new Promise((resolve, reject) => {
+    if(!status) status = '';
+    axios.get(BACKEND_URL + `/label-requests?page=${page}&status=${status}&sorts=${sorts}`).then(res => resolve(res.data)).catch(err => reject(err))
 })
 
 const getReasons = () => new Promise((resolve, reject) => {
@@ -25,6 +26,17 @@ const createLabelRequest = data => new Promise((resolve, reject) => {
         else f.append(key, val);
     }
     axios.post(BACKEND_URL + '/label-requests', f, {
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+    })
+    .then(res => resolve(res.data))
+    .catch(err => reject(err))
+})
+
+const destroyLabelRequest = id => new Promise((resolve, reject) => {
+    axios.delete(BACKEND_URL + `/label-requests/${id}/`, {}, {
         headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
@@ -106,5 +118,6 @@ export {
     updateStatusForLabelRequest,
     editComment,
     downloadStats,
-    deleteBetween2Dates
+    deleteBetween2Dates,
+    destroyLabelRequest
 }

@@ -3,15 +3,15 @@ import { toast } from 'react-toastify';
 import { downloadStats } from '../../../api';
 
 
-const PDF = props => {
+const XLSX = props => {
 
     const download = () => {
         downloadStats()
         .then(res => {
             console.log(res);
-            const linkSource = `data:application/pdf;base64,${res}`;
+            const linkSource = `data:application/xlsx;base64,${res}`;
             const downloadLink = document.createElement("a");
-            const fileName = "statystyki.pdf";
+            const fileName = "statystyki.xlsx";
             downloadLink.href = linkSource;
             downloadLink.download = fileName;
             downloadLink.click();
@@ -41,4 +41,4 @@ const PDF = props => {
     )
 }
 
-export default PDF;
+export default XLSX;
